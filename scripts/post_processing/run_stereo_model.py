@@ -269,4 +269,4 @@ for i, ax in enumerate(axes.ravel()):
             ax.set_title(titles[i])
         ax.axis('off')
 
-plt.savefig('depth_image_grid_2.png', bbox_inches='tight')
+plt.savefig('depth_image_grid.png', bbox_inches='tight')
