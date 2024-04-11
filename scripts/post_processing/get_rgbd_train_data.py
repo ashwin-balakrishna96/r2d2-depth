@@ -21,6 +21,10 @@ WIDTH = 1280
 MAX_DEPTH = 10
 BATCH_SIZE = 16
 
+STEREO_CKPT_PATH = "/mnt/fsx/ashwinbalakrishna/stereo_20230724.pt"
+DROID_DATA_PATH = "/mnt/fsx/surajnair/datasets/r2d2-data/lab-uploads"
+SAVE_PATH = "/mnt/fsx/ashwinbalakrishna/datasets/full_r2d2_define_new"
+
 torch._C._jit_set_profiling_executor(False)
 
 """Code copied from:
@@ -331,34 +335,30 @@ def get_input_output_paths(r2d2_data_path, save_path, prefix):
     return input_traj_paths, output_traj_paths
 
 def main(process_id, num_processes):
-    device_name = torch.cuda.get_device_name().replace(" ", "_")
-    stereo_ckpt = "/mnt/fsx/ashwinbalakrishna/stereo_20230724.pt"
-    model = StereoModel(stereo_ckpt)
+    model = StereoModel(STEREO_CKPT_PATH)
     model.cuda()
     model_dict = {"model": model}
 
-    r2d2_data_path = "/mnt/fsx/surajnair/datasets/r2d2-data/lab-uploads"
-    save_path = "/mnt/fsx/ashwinbalakrishna/datasets/full_r2d2_define_new"
-    prefix = r2d2_data_path.split("/")[-1] + "/"
+    prefix = DROID_DATA_PATH.split("/")[-1] + "/"
     resize_shape = (WIDTH, HEIGHT)
 
     num_samples_per_traj = 32
     num_trajectories = 100000000
     num_failures = 0
-    os.makedirs(save_path, exist_ok=True)
+    os.makedirs(SAVE_PATH, exist_ok=True)
 
-    if os.path.exists(os.path.join(save_path, 'filepaths.pkl')):
-        with open(os.path.join(save_path, 'filepaths.pkl'), 'rb') as file:
+    if os.path.exists(os.path.join(SAVE_PATH, 'filepaths.pkl')):
+        with open(os.path.join(SAVE_PATH, 'filepaths.pkl'), 'rb') as file:
             path_info = pickle.load(file)
             input_traj_paths, output_traj_paths = path_info["input_paths"], path_info["output_paths"]
     else:
-        input_traj_paths, output_traj_paths = get_input_output_paths(r2d2_data_path, save_path, prefix=prefix)
-        with open(os.path.join(save_path, 'filepaths.pkl'), 'wb') as file:
+        input_traj_paths, output_traj_paths = get_input_output_paths(DROID_DATA_PATH, SAVE_PATH, prefix=prefix)
+        with open(os.path.join(SAVE_PATH, 'filepaths.pkl'), 'wb') as file:
             # Dump the object into the pickle file
             pickle.dump({"input_paths": input_traj_paths, "output_paths": output_traj_paths}, file)
     
-    if os.path.exists(os.path.join(save_path, 'failures.pkl')):
-        with open(os.path.join(save_path, 'failures.pkl'), 'rb') as file:
+    if os.path.exists(os.path.join(SAVE_PATH, 'failures.pkl')):
+        with open(os.path.join(SAVE_PATH, 'failures.pkl'), 'rb') as file:
             # Load the object from the pickle file
             failures = pickle.load(file)
             failures['Missing Extrinsics'] = set()
@@ -467,13 +467,13 @@ def main(process_id, num_processes):
         if i % 1000 == 0:
             print("NUM FAILURES: ", num_failures)
             # Open the pickle file in binary write mode
-            with open(os.path.join(save_path, 'failures.pkl'), 'wb') as file:
+            with open(os.path.join(SAVE_PATH, 'failures.pkl'), 'wb') as file:
                 # Dump the object into the pickle file
                 pickle.dump(failures, file)    
 
     print("NUM FAILURES: ", num_failures)
     # Open the pickle file in binary write mode
-    with open(os.path.join(save_path, 'failures.pkl'), 'wb') as file:
+    with open(os.path.join(SAVE_PATH, 'failures.pkl'), 'wb') as file:
         # Dump the object into the pickle file
         pickle.dump(failures, file)
 
