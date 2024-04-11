@@ -13,6 +13,9 @@ from r2d2.camera_utils.recording_readers.svo_reader import SVOReader
 
 torch._C._jit_set_profiling_executor(False)
 
+STEREO_CKPT_PATH = "/mnt/fsx/ashwinbalakrishna/stereo_20230724.pt"
+DATA_PATH = "/mnt/fsx/surajnair/datasets/r2d2-data/lab-uploads/AUTOLab/success/2023-07-07/Fri_Jul__7_14:57:48_2023"
+
 """Code copied from:
 efm: https://github.com/TRI-ML/efm/tree/3c164ab202878a06d130476c776af352c4736468/efm/models/depth
 vidar: https://github.com/TRI-ML/efm/blob/3c164ab202878a06d130476c776af352c4736468/efm/models/depth/utils.py
@@ -165,13 +168,10 @@ def make_cv_disparity_image(disparity, max_disparity):
     mapped[vis_disparity > 1.0 - 1e-3, :] = 0
     return mapped
 
-stereo_ckpt = "/mnt/fsx/ashwinbalakrishna/stereo_20230724.pt"
-filepath = "/mnt/fsx/surajnair/datasets/r2d2-data/lab-uploads/AUTOLab/success/2023-07-07/Fri_Jul__7_14:57:48_2023"
-
-model = StereoModel(stereo_ckpt)
+model = StereoModel(STEREO_CKPT_PATH)
 model.cuda()
-traj_filepath = os.path.join(filepath, "trajectory.h5")
-recording_folderpath = os.path.join(filepath, "recordings/SVO")
+traj_filepath = os.path.join(DATA_PATH, "trajectory.h5")
+recording_folderpath = os.path.join(DATA_PATH, "recordings/SVO")
 traj = load_trajectory(traj_filepath, recording_folderpath=recording_folderpath, camera_kwargs={})
 
 svo_files = []
