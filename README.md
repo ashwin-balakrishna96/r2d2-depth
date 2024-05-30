@@ -1,6 +1,6 @@
 # R2D2 Depth: Studying Depth Values in DROID
 
-This codebase is built on top of a slightly out-dated version of the publicly released DROID repo [here]([url](https://github.com/AlexanderKhazatsky/DROID)). The purpose of this codebase is to provide a way to generate stereo depth values for frames in the DROID dataset, visualize them, and save them out in a format that makes it easy for ingestion in VIDAR.
+This codebase is built on top of a slightly out-dated version of the publicly released DROID repo [here]([here](https://github.com/AlexanderKhazatsky/DROID)). The purpose of this codebase is to provide a way to generate stereo depth values for frames in the DROID dataset, visualize them, and save them out in a format that makes it easy for ingestion in VIDAR.
 
 ## Running the TRI learned stereo model and visualizing results
 
