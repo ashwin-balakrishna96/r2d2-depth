@@ -1,94 +1,33 @@
-[![docs](https://github.com/alexanderkhazatsky/R2D2/actions/workflows/pages.yaml/badge.svg)](https://github.com/alexanderkhazatsky/R2D2/blob/main/.github/workflows/pages.yaml)
-[![nuc_panda](https://github.com/alexanderkhazatsky/R2D2/actions/workflows/build_container_nuc_panda.yaml/badge.svg)](https://github.com/alexanderkhazatsky/R2D2/blob/main/.github/workflows/build_container_nuc_panda.yaml)
-[![nuc_fr3](https://github.com/alexanderkhazatsky/R2D2/actions/workflows/build_container_nuc_fr3.yaml/badge.svg)](https://github.com/alexanderkhazatsky/R2D2/blob/main/.github/workflows/build_container_nuc_fr3.yaml)
-[![laptop_panda](https://github.com/alexanderkhazatsky/R2D2/actions/workflows/build_container_laptop_panda.yaml/badge.svg)](https://github.com/alexanderkhazatsky/R2D2/blob/main/.github/workflows/build_container_laptop_panda.yaml)
-[![laptop_fr3](https://github.com/alexanderkhazatsky/R2D2/actions/workflows/build_container_laptop_fr3.yaml/badge.svg)](https://github.com/alexanderkhazatsky/R2D2/blob/main/.github/build_container_laptop_fr3/pages.yaml)
+# R2D2 Depth: Studying Depth Values in DROID
 
-# R2D2: Residential Robot Demonstration Dataset
+This codebase is built on top of a slightly out-dated version of the publicly released DROID repo [here]([url](https://github.com/AlexanderKhazatsky/DROID)). The purpose of this codebase is to provide a way to generate stereo depth values for frames in the DROID dataset, visualize them, and save them out in a format that makes it easy for ingestion in VIDAR.
 
-The repository provides the code for contributing to and using the R2D2 dataset.
+## Running the TRI learned stereo model and visualizing results
 
-NOTE: This repository has two dependencies listed below. If you are setting this up on the robot NUC, (1) is required. If you are setting this up on the control workstation, (2) is required:
-
-(1) https://github.com/facebookresearch/fairo
-
-(2) https://github.com/rail-berkeley/oculus_reader
-
-## Setup Guide
-Setup this repository on both the server and client machine (ie: NUC and workstation)
-
-Install the necesary packages:
+1. Run ```bash pip install -e . ``` in the root directory.
+2. Make sure to additionally install torch 2.0.1 (the TRI stereo depth model is only tested with this)
+3. Make sure you have the ZED Python API installed (https://www.stereolabs.com/docs/app-development/python/install). Note that this requires installing the ZED SDK.
+4. Mount the lustre FSX instance with the stereo model checkpoint and DROID data pre-downloaded (or access DROID data some other way and fix the paths)
 
 ```bash
-pip install -e .
-
-# Done like this to avoid dependency issues
-pip install dm-robotics-moma==0.5.0 --no-deps
-pip install dm-robotics-transformations==0.5.0 --no-deps
-pip install dm-robotics-agentflow==0.5.0 --no-deps
-pip install dm-robotics-geometry==0.5.0 --no-deps
-pip install dm-robotics-manipulation==0.5.0 --no-deps
-pip install dm-robotics-controllers==0.5.0 --no-deps
+    # Register Lustre Package Repository
+    wget -O - https://fsx-lustre-client-repo-public-keys.s3.amazonaws.com/fsx-ubuntu-public-key.asc | gpg --dearmor | sudo tee /usr/share/keyrings/fsx-ubuntu-public-key.gpg >/dev/null
+    sudo bash -c 'echo "deb [signed-by=/usr/share/keyrings/fsx-ubuntu-public-key.gpg] https://fsx-lustre-client-repo.s3.amazonaws.com/ubuntu focal main" > /etc/apt/sources.list.d/fsxlustreclientrepo.list && apt-get update'
+    # Install Client for *current* Kernel
+    sudo apt install -y lustre-client-modules-$(uname -r)
+    # Create Mount Point
+    sudo mkdir -p /mnt/fsx
+    sudo chown -R ubuntu /mnt/fsx
+    # Mount Lustre (make sure you get the correct address from AWS Console)
+    sudo mount -t lustre -o noatime,flock fs-0ee5fb54e88f9dd00.fsx.us-east-1.amazonaws.com@tcp:/kxvmdbev /mnt/fsx
 ```
+   
+5. Run ```bash python scripts/post_processing/run_stereo_model.py```
 
-If you are using miniconda instead of anaconda:
-- Go into r2d2/franka, then open launch_gripper.sh and launch_robot.sh
-- In both files, change the word anaconda to miniconda, change the paths to be absolute (ie. starting from /home), and save it
-- Go into scripts/server, and do the same thing to launch_server.sh
+You should see an image saved as depth_image_grid.png comparing the ZED stereo model and TRI stereo model outputs on a random timestep for the trajectory corresponding to the DATA_PATH [here]([url](https://github.com/ashwin-balakrishna96/r2d2-depth/blob/main/scripts/post_processing/run_stereo_model.py#L17)).
 
-Regardless of the machine, go into r2d2/misc/parameters.py, and:
-- Set robot_ip to match the IP address of your robot
-- Set nuc_ip to match the IP address of your NUC
+## Generating Stereo Depth Data for Training in VIDAR
 
-If you are setting this up on the robot NUC:
-- In r2d2/misc/parameters.py, set "sudo_password" to your machine's corresponding sudo password. Sudo access is needed to launch the robot. The rest of the parameters can be ignored for now.
-- For the robot_type variable, enter 'fr3' or 'panda' depending on which Franka robot you are using
-
-If you are setting this up on the control workstation:
-- Go into r2d2/misc/parameters.py
-- Set robot_serial_number to match your robot's serial number (found on your franka website, under Settings -> Franka World -> Control S/N)
-- For the robot_type variable, enter 'fr3' or 'panda' depending on which Franka robot you are using
-- Update the Charuco board parameters to match yours. If you ordered it through calib.io, the parameters should be on the board.
-- With the cameras plugged in, launch the GUI, and go to the calibration page. Clicking the camera ID’s will show you which view they correspond to. Update hand_camera_id, varied_3rd_person_camera_id, and fixed_3rd_person_camera_id values in parameters.py with the correct camera ID for each camera.
-
-To make R2D2 compatible with polymetis:
-- If you have an FR3, you will need [these](https://drive.google.com/drive/folders/178-MJTAVV0m5_RDs2ScUNcYameGDA0Eg?usp=sharing) files
-- If you have a Panda, you will need [these](https://drive.google.com/drive/folders/1wXTQQbFKjd9ed3yKxB4td9GzA_XrR7Xk?usp=sharing) files
-- Go into fairo/polymetis/polymetis/conf/robot_client/:
-  - Delete the default franka_hardware.yaml file
-  - Replace it with the franka_hardware[robot_name].yaml file from the folder linked above for your respective robot
-  - Delete the “[robot_name]” text from the file name. For example, change franka_hardware[FR3].yaml to  franka_hardware.yaml
-  - IMPORTANT: Open up your new franka_hardware.yaml file, and change executable_cfg.robot_ip to match your robot’s IP address
-- Go into fairo/polymetis/polymetis/conf/robot_model/:
-  - Delete the default franka_panda.yaml file
-  - Replace it with the franka_panda[robot_name].yaml file from the folder linked above for your respective robot
-  - Delete the “[robot_name]” text from the file name. For example, change franka_panda[FR3].yaml to  franka_panda.yaml
-  - Note: Yes, this might seem a bit wrong if you have an FR3, but the file needs to be named franka_panda.yaml
-
-## Usage
-
-### Server Machine
-Activate the polymetis conda environment:
-
-```bash
-conda activate polymetis-local
-```
-
-Start the server:
-
-```python
-python scripts/server/run_server.py
-```
-
-### Client Machine
-After activating your conda environment, try collecting a trajectory:
-
-```python
-python scripts/tests/collect_trajectory.py
-```
-
-To collect data, run:
-```python
-python scripts/main.py
-```
-
+1. Do all of the steps in the previous section and then run ```bash python scripts/post_processing/get_rgbd_train_data.py```
+2. Reformatted DROID data with depth images saved will be stored in the path corresponding to SAVE_PATH [here]([url](https://github.com/ashwin-balakrishna96/r2d2-depth/blob/main/scripts/post_processing/get_rgbd_train_data.py#L26)). Currently, this saves depth images and other associated information for 32 timesteps per trajectory due to memory constraints but that can be easily modified.
+3. To load the data from the above format in a convenient way, see the dataloader [here]([url](https://github.com/TRI-ML/datasets/blob/kyle-ashwin/png_r2d2_dataloader/datasets/dataloaders/R2D2Dataset.py)).
